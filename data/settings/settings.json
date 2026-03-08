@@ -1,0 +1,167 @@
+{
+  "appearance_mode": "dark",
+  "ffmpeg_path": "",
+  "ffprobe_path": "",
+  "default_source_language": "auto",
+  "default_target_language": "en",
+  "default_voice_mode": "single",
+  "default_max_speaker_voices": 3,
+  "auto_match_speaker_gender": false,
+  "subtitles_enabled": true,
+  "default_subtitle_language": "target",
+  "retime_video_to_dub": true,
+  "speaker_grouping_enabled": false,
+  "preferred_device": "auto",
+  "last_opened_file": "",
+  "last_used_piper_voice_by_language": {},
+  "installed_component_metadata_cache": {
+    "components": {
+      "whisperx-default-model": false,
+      "speechbrain-ecapa": false,
+      "audeering-gender-model": false,
+      "piper-voice-en_US-amy-medium": false,
+      "piper-voice-de_DE-thorsten-medium": false,
+      "piper-voice-es_ES-davefx-medium": false,
+      "piper-voice-fr_FR-tom-medium": false,
+      "piper-voice-it_IT-paola-medium": false,
+      "piper-voice-pt_BR-faber-medium": false,
+      "piper-voice-nl_NL-ronnie-medium": false,
+      "piper-voice-ru_RU-denis-medium": false,
+      "piper-voice-zh_CN-huayan-medium": false
+    },
+    "whisperx_model": "",
+    "whisperx_model_prepared": false,
+    "argos_packages": [],
+    "piper_voices": [],
+    "piper_runtime": false,
+    "speaker_gender_model": false
+  },
+  "last_environment_scan_result": {
+    "checked_at": "2026-03-08T15:24:08.486938+00:00",
+    "items": [
+      {
+        "key": "directories",
+        "title": "App Folders",
+        "status": "ok",
+        "description": "Managed data folders are present and writable.",
+        "required": true,
+        "details": "",
+        "actions": [
+          "Open models folder"
+        ]
+      },
+      {
+        "key": "project_storage",
+        "title": "Project Storage",
+        "status": "ok",
+        "description": "Managed project and export storage folders are available.",
+        "required": true,
+        "details": "",
+        "actions": []
+      },
+      {
+        "key": "python_packages",
+        "title": "Python Packages",
+        "status": "ok",
+        "description": "All required Python packages are available to the main app.",
+        "required": true,
+        "details": "",
+        "actions": []
+      },
+      {
+        "key": "ffmpeg",
+        "title": "FFmpeg",
+        "status": "missing",
+        "description": "FFmpeg is not configured yet. Install the managed Windows build automatically or locate ffmpeg.exe manually.",
+        "required": true,
+        "details": "",
+        "actions": [
+          "Install FFmpeg automatically",
+          "Locate FFmpeg"
+        ]
+      },
+      {
+        "key": "ffprobe",
+        "title": "ffprobe",
+        "status": "missing",
+        "description": "ffprobe is not configured yet. Install the managed Windows build automatically or locate ffprobe.exe manually.",
+        "required": true,
+        "details": "",
+        "actions": [
+          "Install FFmpeg automatically",
+          "Locate ffprobe"
+        ]
+      },
+      {
+        "key": "whisperx_runtime",
+        "title": "WhisperX Model",
+        "status": "missing",
+        "description": "WhisperX runtime is installed, but no managed transcription model has been downloaded yet. The app will ask which model size to install before the download starts.",
+        "required": true,
+        "details": "Recommended starter choice: Small (~1 GB).",
+        "actions": [
+          "Download/install WhisperX model"
+        ]
+      },
+      {
+        "key": "argos_runtime",
+        "title": "Argos Translate",
+        "status": "ok",
+        "description": "Argos Translate runtime is installed, but no offline language pairs are installed yet.",
+        "required": false,
+        "details": "Language packages are downloaded only for the source and target languages you choose.",
+        "actions": [
+          "Install Argos language packages"
+        ]
+      },
+      {
+        "key": "piper_runtime",
+        "title": "Piper Runtime",
+        "status": "missing",
+        "description": "The managed Piper executable is not installed yet. Install it once for local speech synthesis.",
+        "required": true,
+        "details": "",
+        "actions": [
+          "Install Piper runtime"
+        ]
+      },
+      {
+        "key": "piper_voice",
+        "title": "Piper Voices",
+        "status": "missing",
+        "description": "No Piper voice is installed yet. Install at least one voice before generating dubbed speech.",
+        "required": true,
+        "details": "",
+        "actions": [
+          "Install Piper voice"
+        ]
+      },
+      {
+        "key": "speechbrain_runtime",
+        "title": "SpeechBrain Speaker Grouping",
+        "status": "ok",
+        "description": "SpeechBrain runtime is installed, but the local ECAPA asset has not been prepared yet.",
+        "required": false,
+        "details": "The app can fetch the ECAPA asset later when per-speaker voice mode needs it.",
+        "actions": [
+          "Prepare SpeechBrain asset"
+        ]
+      },
+      {
+        "key": "speaker_gender_model",
+        "title": "audEERING Speaker Gender",
+        "status": "missing",
+        "description": "The audEERING age/gender model is not downloaded yet. Install it for better male/female speaker matching.",
+        "required": false,
+        "details": "The app can also prepare it automatically when a job uses gender-aware speaker matching.",
+        "actions": [
+          "Install audEERING gender model"
+        ]
+      }
+    ],
+    "gpu_available": true,
+    "cuda_available": true,
+    "cache_size_mb": 0.0
+  },
+  "recent_projects": []
+}

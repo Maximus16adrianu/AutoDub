@@ -1,0 +1,61 @@
+2026-03-08 14:09:46,478 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Stage changed: preparing project (2%)
+2026-03-08 14:09:46,479 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Preparing project files and metadata.
+2026-03-08 14:09:46,480 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Stage changed: probing video (8%)
+2026-03-08 14:09:46,480 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Reading media metadata with ffprobe.
+2026-03-08 14:09:46,528 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Stage changed: extracting audio (16%)
+2026-03-08 14:09:46,529 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Extracting mono WAV audio for analysis.
+2026-03-08 14:09:47,550 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Extracting stereo source mix to preserve effects and ambience in the final dub.
+2026-03-08 14:09:48,391 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Stage changed: transcribing audio (30%)
+2026-03-08 14:09:48,392 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Running WhisperX transcription.
+2026-03-08 14:12:19,139 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Stage changed: aligning words (38%)
+2026-03-08 14:12:19,140 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Normalizing aligned word timestamps.
+2026-03-08 14:12:19,234 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Stage changed: building segments (44%)
+2026-03-08 14:12:19,234 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Building structured transcript segments.
+2026-03-08 14:12:19,341 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Stage changed: grouping speakers (52%)
+2026-03-08 14:12:19,341 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Extracting speaker embeddings and clustering.
+2026-03-08 14:12:19,342 | INFO | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Speaker grouping is enabled. Max speaker voices for this job: 4.
+2026-03-08 14:12:19,762 | ERROR | autodub.job.episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 | Job episode-12-staffel-3-von-the-rising-of-the-shield-hero-aniworld-to-animes-gratis-legal-online-ansehen-f76b7ba9 failed.
+Traceback (most recent call last):
+  File "C:\Users\adria\Desktop\autotranslatev1\files\core\job_manager.py", line 46, in run_job
+    result = self.pipeline.run(
+  File "C:\Users\adria\Desktop\autotranslatev1\files\core\pipeline.py", line 150, in run
+    speaker_result = self.speaker_service.assign(
+  File "C:\Users\adria\Desktop\autotranslatev1\files\speakers\speaker_assignment.py", line 44, in assign
+    embedding = normalize_embeddings(np.expand_dims(self.embedding_backend.extract_embedding(snippet), axis=0))[0]
+  File "C:\Users\adria\Desktop\autotranslatev1\files\speakers\embedding_backend.py", line 40, in extract_embedding
+    classifier = self._classifier_instance()
+  File "C:\Users\adria\Desktop\autotranslatev1\files\speakers\embedding_backend.py", line 23, in _classifier_instance
+    self._classifier = EncoderClassifier.from_hparams(
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\speechbrain\inference\interfaces.py", line 477, in from_hparams
+    hparams_local_path = fetch(
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\speechbrain\utils\fetching.py", line 387, in fetch
+    fetched_file = huggingface_hub.hf_hub_download(
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\utils\_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\file_download.py", line 1007, in hf_hub_download
+    return _hf_hub_download_to_cache_dir(
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\file_download.py", line 1168, in _hf_hub_download_to_cache_dir
+    _download_to_tmp_and_move(
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\file_download.py", line 1735, in _download_to_tmp_and_move
+    http_get(
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\file_download.py", line 448, in http_get
+    progress_cm = _get_progress_bar_context(
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\utils\tqdm.py", line 299, in _get_progress_bar_context
+    return tqdm(
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\utils\tqdm.py", line 225, in __init__
+    super().__init__(*args, **kwargs)
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\tqdm\asyncio.py", line 24, in __init__
+    super().__init__(iterable, *args, **kwargs)
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\tqdm\std.py", line 1098, in __init__
+    self.refresh(lock_args=self.lock_args)
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\tqdm\std.py", line 1347, in refresh
+    self.display()
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\tqdm\std.py", line 1495, in display
+    self.sp(self.__str__() if msg is None else msg)
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\tqdm\std.py", line 459, in print_status
+    fp_write('\r' + s + (' ' * max(last_len[0] - len_s, 0)))
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\tqdm\std.py", line 452, in fp_write
+    fp.write(str(s))
+  File "C:\Users\adria\AppData\Local\Programs\Python\Python310\lib\site-packages\tqdm\utils.py", line 140, in __getattr__
+    return getattr(self._wrapped, name)
+AttributeError: 'NoneType' object has no attribute 'write'

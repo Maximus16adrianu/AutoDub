@@ -1,0 +1,2 @@
+"""AutoDub Studio package."""
+
