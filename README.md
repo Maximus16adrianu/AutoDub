@@ -6,7 +6,7 @@ It takes a source video, transcribes it with WhisperX, translates it with Argos 
 
 ## Highlights
 
-- Windows-first desktop app with a bootstrap launcher: [`start.pyw`](/c:/Users/adria/Desktop/autotranslatev1/start.pyw)
+- Windows-first desktop app with a bootstrap launcher
 - Main UI built with CustomTkinter
 - Offline-first after the initial dependency, tool, and model downloads
 - Fixed local stack only: no cloud APIs, no account login, no backend switching
