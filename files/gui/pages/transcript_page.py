@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import customtkinter as ctk
 
 from files.core.result_types import JobResult
@@ -26,10 +28,11 @@ class TranscriptPage(ctk.CTkFrame):
         self._search_after_id: str | None = None
         self._render_token = 0
         self._pending_segments: list[tuple[TranscriptSegment, str]] = []
+        self._speaker_gender_guesses: dict[str, dict[str, object]] = {}
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
 
-        header = SectionCard(self, "Transcript", "Inspect source and translated segments with timestamps and speaker labels.")
+        header = SectionCard(self, "Transcript", "Inspect source and translated segments with timestamps, speakers, and gender guesses.")
         header.grid(row=0, column=0, sticky="ew", padx=24, pady=(24, 16))
         controls = ctk.CTkFrame(header, fg_color="transparent")
         controls.grid(row=2, column=0, sticky="ew", padx=18, pady=(0, 18))
@@ -53,13 +56,9 @@ class TranscriptPage(ctk.CTkFrame):
 
         header_row = ctk.CTkFrame(self, fg_color=PANEL_COLOR, corner_radius=14)
         header_row.grid(row=1, column=0, sticky="ew", padx=24, pady=(0, 10))
-        header_row.grid_columnconfigure(0, weight=1)
-        header_row.grid_columnconfigure(1, weight=1)
-        header_row.grid_columnconfigure(2, weight=1)
-        header_row.grid_columnconfigure(3, weight=1)
-        header_row.grid_columnconfigure(4, weight=4)
-        header_row.grid_columnconfigure(5, weight=4)
-        headers = ["Speaker", "Start", "End", "Duration", "Source text", "Translated text"]
+        for index, weight in enumerate((1, 1, 1, 1, 1, 4, 4)):
+            header_row.grid_columnconfigure(index, weight=weight)
+        headers = ["Speaker", "Gender", "Start", "End", "Duration", "Source text", "Translated text"]
         for index, title in enumerate(headers):
             ctk.CTkLabel(
                 header_row,
@@ -80,6 +79,7 @@ class TranscriptPage(ctk.CTkFrame):
             return
         self._result = result
         self._loaded_job_id = job_id
+        self._speaker_gender_guesses = self._load_speaker_gender_guesses(result)
         self._set_action_state(result is not None, bool(result and result.output_paths.subtitles_srt))
         self._refresh_rows()
 
@@ -130,7 +130,8 @@ class TranscriptPage(ctk.CTkFrame):
         filtered_segments: list[tuple[TranscriptSegment, str]] = []
         for segment in self._result.transcript.segments:
             translated = segment.translated_text or ""
-            searchable = " ".join([segment.text, translated, segment.speaker or ""]).lower()
+            gender_label = self._gender_label(segment)
+            searchable = " ".join([segment.text, translated, segment.speaker or "", gender_label]).lower()
             if query and query not in searchable:
                 continue
             filtered_segments.append((segment, translated))
@@ -165,17 +166,18 @@ class TranscriptPage(ctk.CTkFrame):
         row_color = CARD_COLOR if row_index % 2 == 0 else PANEL_COLOR
         row = ctk.CTkFrame(self.body, corner_radius=14, fg_color=row_color, border_width=1, border_color="#263244")
         row.grid(row=row_index, column=0, sticky="ew", pady=(0, 10))
-        for column, weight in enumerate((1, 1, 1, 1, 4, 4)):
+        for column, weight in enumerate((1, 1, 1, 1, 1, 4, 4)):
             row.grid_columnconfigure(column, weight=weight)
         values = [
             segment.speaker or "Single",
+            self._gender_label(segment),
             format_seconds(segment.start),
             format_seconds(segment.end),
             f"{segment.duration:.2f}s",
             segment.text,
             translated,
         ]
-        wraplengths = [100, 80, 80, 90, 360, 360]
+        wraplengths = [120, 115, 80, 80, 90, 340, 340]
         for column, value in enumerate(values):
             ctk.CTkLabel(
                 row,
@@ -185,3 +187,49 @@ class TranscriptPage(ctk.CTkFrame):
                 wraplength=wraplengths[column],
                 font=ui_font(12),
             ).grid(row=0, column=column, sticky="ew", padx=14, pady=12)
+
+    def _load_speaker_gender_guesses(self, result: JobResult | None) -> dict[str, dict[str, object]]:
+        if result is None:
+            return {}
+        direct = getattr(result, "speaker_gender_guesses", None)
+        if isinstance(direct, dict) and direct:
+            return self._normalize_gender_guesses(direct)
+        for path in (result.output_paths.speaker_map_json, result.output_paths.metadata_json):
+            if path is None or not path.exists():
+                continue
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError, TypeError):
+                continue
+            guesses = payload.get("speaker_gender_guesses") if isinstance(payload, dict) else None
+            if isinstance(guesses, dict) and guesses:
+                return self._normalize_gender_guesses(guesses)
+        return {}
+
+    def _normalize_gender_guesses(self, guesses: dict[object, object]) -> dict[str, dict[str, object]]:
+        normalized: dict[str, dict[str, object]] = {}
+        for speaker_label, guess in guesses.items():
+            if isinstance(guess, dict):
+                normalized[str(speaker_label)] = dict(guess)
+            elif guess is not None:
+                normalized[str(speaker_label)] = {"gender": str(guess)}
+        return normalized
+
+    def _gender_label(self, segment: TranscriptSegment) -> str:
+        gender = (segment.speaker_gender or "").strip().lower()
+        confidence = segment.speaker_gender_confidence
+        if not gender and segment.speaker:
+            guess = self._speaker_gender_guesses.get(segment.speaker)
+            if guess:
+                gender = str(guess.get("gender") or "").strip().lower()
+                try:
+                    confidence = float(guess.get("confidence"))  # type: ignore[arg-type]
+                except (TypeError, ValueError):
+                    confidence = None
+        if gender in {"male", "female"}:
+            if confidence is not None:
+                return f"{gender.title()} ({confidence:.0%})"
+            return gender.title()
+        if gender == "unknown":
+            return "Unknown"
+        return "Not checked"

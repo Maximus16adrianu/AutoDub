@@ -105,6 +105,12 @@ class SpeechBrainEmbeddingBackend:
                             progress_callback(
                                 f"SpeechBrain ECAPA: {percent:.0f}% ({downloaded_mb:.1f}/{total_mb:.1f} MB) | {filename}"
                             )
+            if expected_size > 0 and part_path.stat().st_size != expected_size:
+                actual_size = part_path.stat().st_size
+                part_path.unlink(missing_ok=True)
+                raise RuntimeError(
+                    f"SpeechBrain ECAPA file {filename} size mismatch: expected {expected_size} bytes, got {actual_size}."
+                )
             part_path.replace(target_path)
 
         return self.asset_dir

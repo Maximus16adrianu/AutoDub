@@ -49,7 +49,7 @@ class StartupCheckResult:
         if not self.whisperx_model_prepared:
             items.append("WhisperX model cache has not been prepared yet.")
         if not self.piper_runtime_prepared:
-            items.append("Piper runtime is not installed yet.")
+            items.append("Piper speech synthesis runtime is not available yet.")
         if self.piper_voice_count == 0:
             items.append("No Piper voice is installed yet.")
         return items
@@ -74,7 +74,9 @@ def check_startup_requirements(paths) -> StartupCheckResult:
     minimum_version = minimum_python_version_label()
     missing_packages = find_missing_python_packages()
     whisperx_model_prepared = (paths.models / "whisperx" / "model-ready.json").exists()
-    piper_runtime_prepared = (paths.models / "piper" / "runtime" / "piper.exe").exists()
+    piper_runtime_prepared = (
+        importlib.util.find_spec("piper") is not None or (paths.models / "piper" / "runtime" / "piper.exe").exists()
+    )
     piper_voice_count = len(list((paths.models / "piper").glob("*/*.onnx")))
     notes: list[str] = []
     if not python_ok:
@@ -92,7 +94,7 @@ def check_startup_requirements(paths) -> StartupCheckResult:
     if not whisperx_model_prepared:
         notes.append("WhisperX model assets are not prepared yet. The main Setup page can install them.")
     if not piper_runtime_prepared:
-        notes.append("Piper runtime is not installed yet. The main Setup page can install it.")
+        notes.append("Piper runtime is not available yet. Install dependencies, then the main Setup page can validate it.")
     if piper_voice_count == 0:
         notes.append("No Piper voice files are installed yet. The main Setup page can install one.")
     if python_ok and not missing_packages:

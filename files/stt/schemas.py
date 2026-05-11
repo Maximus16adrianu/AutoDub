@@ -28,6 +28,8 @@ class TranscriptSegment:
     text: str
     language: str
     speaker: str | None = None
+    speaker_gender: str | None = None
+    speaker_gender_confidence: float | None = None
     word_ids: list[str] = field(default_factory=list)
     translated_text: str | None = None
 
@@ -55,4 +57,3 @@ class TranscriptResult:
             "duration": self.duration,
             "speaker_count": self.speaker_count,
         }
-

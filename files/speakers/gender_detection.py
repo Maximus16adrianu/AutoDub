@@ -4,17 +4,15 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Literal
 
 import numpy as np
-import requests
 import soundfile as sf
 
 from files.stt.schemas import TranscriptResult
-from files.utils.file_utils import ensure_directory
+from files.utils.file_utils import download_file_atomic, ensure_directory, safe_extract_zip
 
 
 SpeakerGender = Literal["male", "female", "unknown"]
@@ -92,8 +90,7 @@ class SpeakerGenderDetector:
                 shutil.rmtree(item, ignore_errors=True)
             elif item.is_file():
                 item.unlink(missing_ok=True)
-        with zipfile.ZipFile(archive_path, "r") as archive:
-            archive.extractall(self.asset_dir)
+        safe_extract_zip(archive_path, self.asset_dir)
         model_root = self._detect_model_root()
         if model_root is None:
             raise RuntimeError("The audEERING speaker gender model archive was extracted, but no ONNX model files were found.")
@@ -228,25 +225,6 @@ class SpeakerGenderDetector:
         return exp_values / np.sum(exp_values, dtype=np.float32)
 
     def _download_file(self, url: str, destination: Path, progress_callback: ProgressCallback = None) -> Path:
-        ensure_directory(destination.parent)
         if progress_callback is not None:
             progress_callback("Downloading audEERING age/gender model (24-layer)...")
-        with requests.get(url, stream=True, timeout=120) as response:
-            response.raise_for_status()
-            total_bytes = int(response.headers.get("Content-Length", "0"))
-            downloaded = 0
-            last_reported_percent = -1
-            with destination.open("wb") as handle:
-                for chunk in response.iter_content(chunk_size=1024 * 1024):
-                    if not chunk:
-                        continue
-                    handle.write(chunk)
-                    downloaded += len(chunk)
-                    if total_bytes and progress_callback is not None:
-                        percent = int(downloaded / total_bytes * 100)
-                        if percent > last_reported_percent or downloaded >= total_bytes:
-                            downloaded_mb = downloaded / (1024 * 1024)
-                            total_mb = total_bytes / (1024 * 1024)
-                            progress_callback(f"{destination.name}: {percent:.0f}% ({downloaded_mb:.1f}/{total_mb:.1f} MB)")
-                            last_reported_percent = percent
-        return destination
+        return download_file_atomic(url, destination, progress_callback)

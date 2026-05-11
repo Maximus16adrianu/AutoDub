@@ -4,14 +4,11 @@ from __future__ import annotations
 
 import shutil
 import subprocess
-import zipfile
 from pathlib import Path
 from typing import Callable
 
-import requests
-
 from files.storage.settings_store import AppSettings, SettingsStore
-from files.utils.file_utils import ensure_directory
+from files.utils.file_utils import download_file_atomic, ensure_directory, safe_extract_zip
 from files.utils.process_utils import hidden_subprocess_kwargs
 
 
@@ -101,8 +98,7 @@ class FFmpegManager:
         if install_root.exists():
             shutil.rmtree(install_root, ignore_errors=True)
             install_root.mkdir(parents=True, exist_ok=True)
-        with zipfile.ZipFile(self.archive_path, "r") as archive:
-            archive.extractall(install_root)
+        safe_extract_zip(self.archive_path, install_root)
         ffmpeg_path = self._locate_extracted_binary("ffmpeg.exe")
         ffprobe_path = self._locate_extracted_binary("ffprobe.exe")
         if ffmpeg_path is None or ffprobe_path is None:
@@ -137,25 +133,4 @@ class FFmpegManager:
         destination: Path,
         progress_callback: Callable[[str], None] | None = None,
     ) -> Path:
-        ensure_directory(destination.parent)
-        with requests.get(url, stream=True, timeout=120) as response:
-            response.raise_for_status()
-            total_bytes = int(response.headers.get("Content-Length", "0"))
-            downloaded = 0
-            last_reported_percent = -1
-            with destination.open("wb") as handle:
-                for chunk in response.iter_content(chunk_size=1024 * 1024):
-                    if not chunk:
-                        continue
-                    handle.write(chunk)
-                    downloaded += len(chunk)
-                    if total_bytes and progress_callback is not None:
-                        percent = int(downloaded / total_bytes * 100)
-                        if percent > last_reported_percent or downloaded >= total_bytes:
-                            downloaded_mb = downloaded / (1024 * 1024)
-                            total_mb = total_bytes / (1024 * 1024)
-                            progress_callback(
-                                f"ffmpeg-release-essentials.zip: {percent:.0f}% ({downloaded_mb:.1f}/{total_mb:.1f} MB)"
-                            )
-                            last_reported_percent = percent
-        return destination
+        return download_file_atomic(url, destination, progress_callback, label="ffmpeg-release-essentials.zip")

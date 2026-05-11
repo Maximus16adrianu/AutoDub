@@ -21,7 +21,7 @@ def main() -> None:
     logger = configure_main_logging(paths)
     logger.info("Launching main application.")
     settings_store = SettingsStore(paths.settings_file)
-    ffmpeg_manager = FFmpegManager(settings_store)
+    ffmpeg_manager = FFmpegManager(settings_store, managed_root=paths.models / "ffmpeg")
     model_manager = ModelManager(paths.models, preferred_device=settings_store.load().preferred_device)
     environment_manager = EnvironmentManager(paths, settings_store, ffmpeg_manager, model_manager)
     package_manager = PythonPackageManager(paths.root / "requirements.txt")

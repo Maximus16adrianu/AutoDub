@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
@@ -49,7 +49,14 @@ class SettingsStore:
 
     def load(self) -> AppSettings:
         raw = self._store.load(default={})
-        return AppSettings(**raw)
+        if not isinstance(raw, dict):
+            return AppSettings()
+        allowed_keys = {field_info.name for field_info in fields(AppSettings)}
+        filtered = {key: value for key, value in raw.items() if key in allowed_keys}
+        try:
+            return AppSettings(**filtered)
+        except (TypeError, ValueError):
+            return AppSettings()
 
     def save(self, settings: AppSettings) -> None:
         self._store.save(asdict(settings))

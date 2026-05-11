@@ -1,0 +1,40 @@
+# Python bytecode and local tooling
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Project virtual environment
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Runtime app data
+data/cache/
+data/models/
+data/projects/
+data/exports/
+data/temp/
+data/logs/
+
+# Local user settings and generated state
+data/settings/*.json
+data/**/*.log
+*.log
+*.part
+*.tmp
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

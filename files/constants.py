@@ -55,6 +55,7 @@ CRITICAL_PYTHON_PACKAGES = {
     "numpy": "numpy",
     "audonnx": "audonnx",
     "onnxruntime": "onnxruntime",
+    "piper": "piper-tts",
 }
 
 PIPELINE_STAGES = (
@@ -151,6 +152,20 @@ WHISPERX_MODEL_PRESETS = {
         "Systran/faster-whisper-large-v2",
         "~6 GB",
         "Largest offline option here, best for difficult audio.",
+    ),
+    "large-v3": WhisperXModelPreset(
+        "large-v3",
+        "Large V3",
+        "Systran/faster-whisper-large-v3",
+        "~6 GB",
+        "Latest full-size Whisper family model for difficult audio.",
+    ),
+    "distil-large-v3": WhisperXModelPreset(
+        "distil-large-v3",
+        "Distil Large V3",
+        "Systran/faster-distil-whisper-large-v3",
+        "~3 GB",
+        "Faster large-v3 distilled model with lower resource use.",
     ),
 }
 SUPPORTED_WHISPERX_MODELS = tuple(WHISPERX_MODEL_PRESETS.keys())

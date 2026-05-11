@@ -69,6 +69,7 @@ class Pipeline:
         emit_stage: Callable[[str, float], None],
         emit_progress: Callable[[str, float, str], None],
         emit_log: Callable[[str], None],
+        emit_notice: Callable[[str, str], None],
         cancel_event: threading.Event,
     ) -> JobResult:
         warnings: list[str] = []
@@ -201,6 +202,8 @@ class Pipeline:
                 transcript.source_language,
                 request.target_language,
                 progress_callback=emit_log,
+                notice_callback=emit_notice,
+                route_label="Main dub translation",
             )
             layout.translated_segments_file.write_text(
                 json.dumps(translated_segments, indent=2, ensure_ascii=False),
@@ -219,6 +222,7 @@ class Pipeline:
                     subtitle_language_resolved,
                     request.target_language,
                     emit_log,
+                    emit_notice,
                 )
             else:
                 emit_log("Subtitle export disabled for this job.")
@@ -231,9 +235,14 @@ class Pipeline:
                 unique_speaker_count = len(set(speaker_labels)) or 1
                 desired_voice_count = max(1, min(request.max_speaker_voices, unique_speaker_count))
                 gender_hints: dict[str, str] = {}
-                if request.auto_match_speaker_gender:
+                should_estimate_gender = request.auto_match_speaker_gender or self.model_manager.is_installed(
+                    "audeering-gender-model"
+                )
+                if should_estimate_gender:
                     emit_log(
                         "Gender-aware voice matching is enabled. The app will use the local audEERING age/gender model on each detected speaker."
+                        if request.auto_match_speaker_gender
+                        else "audEERING speaker gender model is installed. Estimating speaker gender for transcript display."
                     )
                     if not self.model_manager.is_installed("audeering-gender-model"):
                         emit_log("Preparing the local audEERING speaker gender model before voice assignment starts.")
@@ -248,6 +257,8 @@ class Pipeline:
                         warnings.append(f"speaker_gender_matching_fallback: {gender_exc}")
                         emit_log(
                             "Gender-aware voice matching could not classify the detected speakers. Voice assignment will continue without gender hints."
+                            if request.auto_match_speaker_gender
+                            else "Speaker gender display could not classify the detected speakers. The transcript will continue without gender labels."
                         )
                         self.logger.warning(
                             "Speaker gender matching failed for job %s. Continuing without gender hints.",
@@ -269,6 +280,11 @@ class Pipeline:
                                 f"Gender guess for {speaker_label}: {guess.gender} "
                                 f"(female {guess.female_score:.2f}, male {guess.male_score:.2f}, child {guess.child_score:.2f})."
                             )
+                        self._apply_speaker_gender_guesses(transcript, speaker_gender_guesses)
+                        layout.transcript_file.write_text(
+                            json.dumps(transcript.to_dict(), indent=2, ensure_ascii=False),
+                            encoding="utf-8",
+                        )
                 installed_voice_ids = self.model_manager.ensure_voice_pool(
                     request.target_language,
                     desired_voice_count,
@@ -475,8 +491,27 @@ class Pipeline:
             ),
             source_language=transcript.source_language,
             speaker_map=speaker_map,
+            speaker_gender_guesses=speaker_gender_guesses,
             warnings=warnings,
         )
+
+    def _apply_speaker_gender_guesses(
+        self,
+        transcript: TranscriptResult,
+        speaker_gender_guesses: dict[str, dict[str, object]],
+    ) -> None:
+        for segment in transcript.segments:
+            speaker_label = segment.speaker or ""
+            guess = speaker_gender_guesses.get(speaker_label)
+            if not guess:
+                continue
+            gender = str(guess.get("gender") or "").strip().lower()
+            if gender:
+                segment.speaker_gender = gender
+            try:
+                segment.speaker_gender_confidence = float(guess.get("confidence"))  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                segment.speaker_gender_confidence = None
 
     def _resolve_subtitle_language(self, configured_language: str, source_language: str, target_language: str) -> str:
         if configured_language == "target":
@@ -492,6 +527,7 @@ class Pipeline:
         subtitle_language: str,
         dub_language: str,
         emit_log: Callable[[str], None],
+        emit_notice: Callable[[str, str], None],
     ) -> list[dict]:
         if subtitle_language == dub_language:
             emit_log(f"Subtitle language set to {LANGUAGE_LABELS.get(subtitle_language, subtitle_language)}. Reusing the dubbed translation text.")
@@ -518,6 +554,8 @@ class Pipeline:
             transcript.source_language,
             subtitle_language,
             progress_callback=emit_log,
+            notice_callback=emit_notice,
+            route_label="Subtitle translation",
             attach_to_segments=False,
         )
 

@@ -2,6 +2,34 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+
+def _maybe_relaunch_from_project_venv() -> None:
+    root = Path(__file__).resolve().parent
+    venv_dir = root / ".venv"
+    try:
+        running_from_venv = Path(sys.executable).resolve().is_relative_to(venv_dir.resolve())
+    except (OSError, RuntimeError, ValueError):
+        running_from_venv = False
+    if running_from_venv:
+        return
+    pythonw = venv_dir / "Scripts" / "pythonw.exe"
+    python = venv_dir / "Scripts" / "python.exe"
+    launcher = pythonw if pythonw.exists() else python
+    if not launcher.exists():
+        return
+    env = os.environ.copy()
+    env["AUTODUB_PROJECT_VENV"] = str(venv_dir)
+    subprocess.Popen([str(launcher), str(root / "start.pyw")], cwd=str(root), env=env)
+    raise SystemExit(0)
+
+
+_maybe_relaunch_from_project_venv()
+
 from files.bootstrap.bootstrap_window import BootstrapWindow
 from files.bootstrap.dependency_check import check_startup_requirements
 from files.bootstrap.installer import RequirementsInstaller

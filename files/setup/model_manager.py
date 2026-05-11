@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import shutil
-import zipfile
 from pathlib import Path
 from typing import Callable
-
-import requests
 
 from files.constants import DEFAULT_WHISPERX_MODEL, WHISPERX_MODEL_PRESETS
 from files.setup.model_manifest import InstallableComponent, build_static_manifest
@@ -17,8 +15,8 @@ from files.stt.whisperx_backend import WhisperXBackend
 from files.speakers.embedding_backend import SpeechBrainEmbeddingBackend
 from files.translate.package_manager import ArgosPackageManager
 from files.tts.model_manager import PiperVoiceManager
-from files.tts.voice_registry import PIPER_RUNTIME_ZIP_URL, VOICE_REGISTRY, get_voice, voice_ids_for_language
-from files.utils.file_utils import ensure_directory
+from files.tts.voice_registry import VOICE_REGISTRY, get_voice, voice_ids_for_language
+from files.utils.file_utils import download_file_atomic, ensure_directory
 
 
 ProgressCallback = Callable[[str], None] | None
@@ -37,6 +35,10 @@ class ModelManager:
     @property
     def piper_runtime_dir(self) -> Path:
         return self.models_root / "piper" / "runtime"
+
+    @property
+    def legacy_piper_executable(self) -> Path:
+        return self.piper_runtime_dir / "piper.exe"
 
     def list_components(self) -> list[InstallableComponent]:
         components = list(self._manifest)
@@ -201,33 +203,27 @@ class ModelManager:
 
     def install_piper_runtime(self, progress_callback: ProgressCallback = None) -> Path:
         runtime_dir = ensure_directory(self.piper_runtime_dir)
-        archive_path = runtime_dir / "piper_windows_amd64.zip"
-        if progress_callback is not None:
-            progress_callback("Downloading Piper Windows runtime...")
-        self._download_file(PIPER_RUNTIME_ZIP_URL, archive_path, progress_callback)
-        if progress_callback is not None:
-            progress_callback("Extracting Piper runtime...")
-        with zipfile.ZipFile(archive_path, "r") as archive:
-            archive.extractall(runtime_dir)
-        nested_runtime = next(runtime_dir.glob("**/piper.exe"), None)
-        if nested_runtime and nested_runtime.parent != runtime_dir:
-            for item in nested_runtime.parent.iterdir():
-                destination = runtime_dir / item.name
-                if destination.exists():
-                    if destination.is_dir():
-                        shutil.rmtree(destination)
-                    else:
-                        destination.unlink()
-                if item.is_dir():
-                    shutil.copytree(item, destination)
-                else:
-                    shutil.copy2(item, destination)
         marker_path = runtime_dir / "runtime-ready.json"
-        marker_path.write_text(json.dumps({"runtime_path": str(runtime_dir / "piper.exe")}, indent=2), encoding="utf-8")
-        return runtime_dir / "piper.exe"
+        if importlib.util.find_spec("piper") is not None:
+            if progress_callback is not None:
+                progress_callback("Piper Python package is installed and ready for speech synthesis.")
+            marker_path.write_text(
+                json.dumps({"runtime": "piper-tts", "runtime_path": "python:piper"}, indent=2),
+                encoding="utf-8",
+            )
+            return marker_path
+        if self.legacy_piper_executable.exists():
+            if progress_callback is not None:
+                progress_callback("Using existing legacy Piper executable from the managed runtime folder.")
+            marker_path.write_text(
+                json.dumps({"runtime": "legacy-piper-exe", "runtime_path": str(self.legacy_piper_executable)}, indent=2),
+                encoding="utf-8",
+            )
+            return self.legacy_piper_executable
+        raise RuntimeError("The piper-tts Python package is not importable. Install Python dependencies first.")
 
     def piper_runtime_installed(self) -> bool:
-        return (self.piper_runtime_dir / "piper.exe").exists()
+        return importlib.util.find_spec("piper") is not None or self.legacy_piper_executable.exists()
 
     def installed_summary(self) -> dict[str, object]:
         prepared_whisperx_model = self.prepared_whisperx_model() or ""
@@ -250,23 +246,4 @@ class ModelManager:
         self._download_file(voice.config_url, config_path, progress_callback)
 
     def _download_file(self, url: str, destination: Path, progress_callback: ProgressCallback = None) -> Path:
-        ensure_directory(destination.parent)
-        with requests.get(url, stream=True, timeout=120) as response:
-            response.raise_for_status()
-            total_bytes = int(response.headers.get("Content-Length", "0"))
-            downloaded = 0
-            last_reported_percent = -1
-            with destination.open("wb") as handle:
-                for chunk in response.iter_content(chunk_size=1024 * 1024):
-                    if not chunk:
-                        continue
-                    handle.write(chunk)
-                    downloaded += len(chunk)
-                    if total_bytes and progress_callback is not None:
-                        percent = int(downloaded / total_bytes * 100)
-                        if percent > last_reported_percent or downloaded >= total_bytes:
-                            downloaded_mb = downloaded / (1024 * 1024)
-                            total_mb = total_bytes / (1024 * 1024)
-                            progress_callback(f"{destination.name}: {percent:.0f}% ({downloaded_mb:.1f}/{total_mb:.1f} MB)")
-                            last_reported_percent = percent
-        return destination
+        return download_file_atomic(url, destination, progress_callback)

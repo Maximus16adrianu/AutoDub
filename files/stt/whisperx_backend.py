@@ -41,9 +41,25 @@ class WhisperXBackend:
     def _device(self) -> str:
         if self.preferred_device == "cpu":
             return "cpu"
-        if self.preferred_device == "cuda" and torch.cuda.is_available():
+        if self.preferred_device == "cuda" and self.cuda_runtime_ready():
             return "cuda"
-        return "cuda" if torch.cuda.is_available() else "cpu"
+        return "cuda" if self.cuda_runtime_ready() else "cpu"
+
+    def cuda_runtime_ready(self) -> bool:
+        if not torch.cuda.is_available():
+            return False
+        try:
+            import ctranslate2
+
+            get_device_count = getattr(ctranslate2, "get_cuda_device_count", None)
+            if callable(get_device_count) and get_device_count() <= 0:
+                return False
+            get_compute_types = getattr(ctranslate2, "get_supported_compute_types", None)
+            if callable(get_compute_types):
+                return bool(get_compute_types("cuda"))
+        except Exception:
+            return False
+        return True
 
     def available(self) -> bool:
         try:
@@ -167,6 +183,12 @@ class WhisperXBackend:
                             progress_callback(
                                 f"WhisperX {model_name}: {percent:.0f}% ({downloaded_mb:.1f}/{total_mb:.1f} MB) | {filename}"
                             )
+            if expected_size > 0 and part_path.stat().st_size != expected_size:
+                actual_size = part_path.stat().st_size
+                part_path.unlink(missing_ok=True)
+                raise RuntimeError(
+                    f"WhisperX file {filename} size mismatch: expected {expected_size} bytes, got {actual_size}."
+                )
             part_path.replace(target_path)
 
         if progress_callback is not None:
@@ -182,6 +204,37 @@ class WhisperXBackend:
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             yield
 
+    def _load_model(
+        self,
+        whisperx,  # type: ignore[no-untyped-def]
+        model_reference: str | Path,
+        device: str,
+    ):
+        compute_type = "float16" if device == "cuda" else "int8"
+        return whisperx.load_model(
+            str(model_reference),
+            device=device,
+            compute_type=compute_type,
+            download_root=str(self.models_root),
+            vad_method="silero",
+        )
+
+    def _load_model_with_device_fallback(
+        self,
+        whisperx,  # type: ignore[no-untyped-def]
+        model_reference: str | Path,
+        device: str,
+        progress_callback: Callable[[str], None] | None = None,
+    ) -> tuple[object, str]:
+        try:
+            return self._load_model(whisperx, model_reference, device), device
+        except Exception:
+            if device != "cuda" or self.preferred_device != "auto":
+                raise
+            if progress_callback is not None:
+                progress_callback("CUDA model initialization failed; retrying WhisperX on CPU with int8 compute.")
+            return self._load_model(whisperx, model_reference, "cpu"), "cpu"
+
     def prepare_model(
         self,
         model_name: str = DEFAULT_WHISPERX_MODEL,
@@ -191,17 +244,10 @@ class WhisperXBackend:
         resolved_model = self._normalize_model_name(model_name)
         model_reference = self._download_model_files(resolved_model, progress_callback)
         device = self._device()
-        compute_type = "float16" if device == "cuda" else "int8"
         if progress_callback is not None:
             progress_callback("Initializing WhisperX with the downloaded model files...")
         with self._suppress_library_console_output():
-            whisperx.load_model(
-                str(model_reference),
-                device=device,
-                compute_type=compute_type,
-                download_root=str(self.models_root),
-                vad_method="silero",
-            )
+            _model, device = self._load_model_with_device_fallback(whisperx, model_reference, device, progress_callback)
         marker_path = self._marker_path()
         marker_path.write_text(
             json.dumps({"model_name": resolved_model, "device": device, "model_dir": str(model_reference)}, indent=2),
@@ -228,15 +274,8 @@ class WhisperXBackend:
         whisperx = self._module()
         resolved_model = self._normalize_model_name(model_name)
         device = self._device()
-        compute_type = "float16" if device == "cuda" else "int8"
         with self._suppress_library_console_output():
-            model = whisperx.load_model(
-                self._model_reference(resolved_model),
-                device=device,
-                compute_type=compute_type,
-                download_root=str(self.models_root),
-                vad_method="silero",
-            )
+            model, device = self._load_model_with_device_fallback(whisperx, self._model_reference(resolved_model), device)
             audio = self._load_prepared_audio(audio_path)
             requested_language = None if source_language == "auto" else source_language
             transcription = model.transcribe(audio, batch_size=4, language=requested_language)

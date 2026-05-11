@@ -39,6 +39,13 @@ class JobLog:
 
 
 @dataclass(frozen=True)
+class JobNotice:
+    job_id: str
+    title: str
+    message: str
+
+
+@dataclass(frozen=True)
 class JobFinished:
     job_id: str
     result: JobResult
@@ -93,6 +100,7 @@ AppEvent = (
     | JobStageChanged
     | JobProgress
     | JobLog
+    | JobNotice
     | JobFinished
     | JobFailed
     | BackgroundTaskFailed

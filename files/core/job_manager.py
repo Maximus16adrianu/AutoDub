@@ -10,7 +10,7 @@ from pathlib import Path
 from queue import Queue
 
 from files.core.background import BackgroundTaskRunner
-from files.core.events import AppEvent, JobFailed, JobFinished, JobLog, JobProgress, JobStageChanged, JobStarted
+from files.core.events import AppEvent, JobFailed, JobFinished, JobLog, JobNotice, JobProgress, JobStageChanged, JobStarted
 from files.core.result_types import JobRequest
 from files.core.pipeline import Pipeline
 from files.storage.project_store import create_project_layout
@@ -50,6 +50,7 @@ class JobManager:
                     emit_stage=lambda stage, progress: self._emit_stage(job_id, stage, progress, job_logger),
                     emit_progress=lambda stage, progress, detail: self._emit_progress(job_id, stage, progress, detail),
                     emit_log=lambda message: self._emit_log(job_id, message, job_logger),
+                    emit_notice=lambda title, message: self._emit_notice(job_id, title, message, job_logger),
                     cancel_event=cancel_event,
                 )
             except Exception as exc:
@@ -80,6 +81,10 @@ class JobManager:
     def _emit_log(self, job_id: str, message: str, job_logger: logging.Logger) -> None:
         job_logger.info(message)
         self.event_queue.put(JobLog(job_id=job_id, level="INFO", message=message))
+
+    def _emit_notice(self, job_id: str, title: str, message: str, job_logger: logging.Logger) -> None:
+        job_logger.info("NOTICE | %s | %s", title, message)
+        self.event_queue.put(JobNotice(job_id=job_id, title=title, message=message))
 
     def _emit_progress(self, job_id: str, stage: str, progress: float, detail: str) -> None:
         self.event_queue.put(JobProgress(job_id=job_id, stage=stage, progress=progress, detail=detail))

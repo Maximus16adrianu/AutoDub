@@ -29,6 +29,7 @@ from files.core.events import (
     JobFailed,
     JobFinished,
     JobLog,
+    JobNotice,
     JobProgress,
     JobStageChanged,
     JobStarted,
@@ -117,6 +118,7 @@ class MainWindow(ctk.CTk):
         self._pending_job_request: JobRequest | None = None
         self._pending_job_from_queue = False
         self._active_install_title: str | None = None
+        self._shown_job_notices: set[tuple[str, str, str]] = set()
         self.title(APP_NAME)
         self.geometry("1360x860")
         self.minsize(1080, 700)
@@ -273,6 +275,9 @@ class MainWindow(ctk.CTk):
             return
         if isinstance(event, JobStarted):
             self.app_state.current_job_id = event.job_id
+            self._shown_job_notices = {
+                item for item in self._shown_job_notices if item[0] != event.job_id
+            }
             self._mark_queue_job_started(event.job_id)
             self.pages["Processing"].set_job_started(event.job_id, self._queue_processing_label())  # type: ignore[call-arg]
             self.show_page("Processing")
@@ -283,6 +288,17 @@ class MainWindow(ctk.CTk):
             return
         if isinstance(event, JobLog):
             self.pages["Processing"].append_log(event.message)  # type: ignore[call-arg]
+            return
+        if isinstance(event, JobNotice):
+            if event.job_id != self.app_state.current_job_id:
+                self.logger.warning("Ignoring stale JobNotice event for %s.", event.job_id)
+                return
+            notice_key = (event.job_id, event.title, event.message)
+            if notice_key in self._shown_job_notices:
+                return
+            self._shown_job_notices.add(notice_key)
+            self.pages["Processing"].append_log(f"{event.title}: {event.message}")  # type: ignore[call-arg]
+            dialogs.show_info(self, event.title, event.message)
             return
         if isinstance(event, JobProgress):
             self.pages["Processing"].update_stage(event.stage, event.detail, event.progress)  # type: ignore[call-arg]

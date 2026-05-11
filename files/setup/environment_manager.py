@@ -206,13 +206,13 @@ class EnvironmentManager:
                 key="piper_runtime",
                 title="Piper Runtime",
                 status="ok",
-                description="The managed Piper runtime is installed and ready to invoke.",
+                description="Piper speech synthesis is ready through the piper-tts Python package or a legacy local executable.",
             )
         return EnvironmentStatusItem(
             key="piper_runtime",
             title="Piper Runtime",
             status="missing",
-            description="The managed Piper executable is not installed yet. Install it once for local speech synthesis.",
+            description="Piper speech synthesis is not ready yet. Install Python dependencies to add the piper-tts runtime.",
             actions=["Install Piper runtime"],
         )
 
@@ -332,7 +332,7 @@ class EnvironmentManager:
             ],
             checked_at=utc_now_iso(),
             gpu_available=torch.cuda.is_available(),
-            cuda_available=torch.cuda.is_available(),
+            cuda_available=self.model_manager.whisperx_backend.cuda_runtime_ready(),
             cache_size_mb=directory_size_mb(self.paths.cache),
         )
         self.settings_store.update(

@@ -89,5 +89,6 @@ class JobResult:
     output_paths: OutputArtifactPaths
     source_language: str
     speaker_map: dict[str, str] = field(default_factory=dict)
+    speaker_gender_guesses: dict[str, dict[str, object]] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
     stage: str = "finished"

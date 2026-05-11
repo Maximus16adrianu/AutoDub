@@ -17,8 +17,11 @@ class JsonStore:
     def load(self, default: Any) -> Any:
         if not self.path.exists():
             return default
-        with self.path.open("r", encoding="utf-8") as handle:
-            return json.load(handle)
+        try:
+            with self.path.open("r", encoding="utf-8") as handle:
+                return json.load(handle)
+        except (OSError, json.JSONDecodeError, TypeError):
+            return default
 
     def save(self, value: Any) -> None:
         ensure_directory(self.path.parent)

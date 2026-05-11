@@ -16,7 +16,6 @@ class PiperVoice:
     sample_rate: int = 22_050
 
 
-PIPER_RUNTIME_ZIP_URL = "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_windows_amd64.zip"
 PIPER_VOICE_BASE_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0"
 
 
