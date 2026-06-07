@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Any, Callable
 
 from files.stt.schemas import TranscriptSegment
 from files.translate.context_window import build_neighbor_context
@@ -25,6 +25,25 @@ class ArgosTranslateBackend:
         except Exception:
             return False
         return True
+
+    def _translation_chain(self, source_language: str, target_language: str) -> list[Any]:
+        language_api = self._language_api()
+        self.package_manager.refresh_translation_cache(language_api)
+        translator = language_api.get_translation_from_codes(source_language, target_language)
+        if translator is not None:
+            return [translator]
+
+        route = self.package_manager.installed_route(source_language, target_language)
+        if not route:
+            raise RuntimeError(f"No usable Argos translation route available for {source_language}->{target_language}")
+
+        translators: list[object] = []
+        for step in route:
+            step_translator = language_api.get_translation_from_codes(step.from_code, step.to_code)
+            if step_translator is None:
+                raise RuntimeError(f"Argos translation route exists, but the runtime could not load {step.code}")
+            translators.append(step_translator)
+        return translators
 
     def ensure_language_pair(
         self,
@@ -81,9 +100,7 @@ class ArgosTranslateBackend:
                 f"{source_language}->{target_language}. AutoDub Studio will continue with "
                 f"{route_text}. This means the text is translated in multiple steps and can be less accurate than a direct package.",
             )
-        language_api = self._language_api()
-        self.package_manager.refresh_translation_cache(language_api)
-        translator = language_api.get_translation_from_codes(source_language, target_language)
+        translators = self._translation_chain(source_language, target_language)
         translated_payload: list[dict] = []
         for index, segment in enumerate(segments):
             if progress_callback is not None and (
@@ -94,7 +111,9 @@ class ArgosTranslateBackend:
                 progress_callback(f"Argos translation progress: {index + 1}/{len(segments)} segments.")
             context = build_neighbor_context(segments, index)
             seed_text = segment.text if not context else f"{context}\n{segment.text}"
-            translated_raw = translator.translate(seed_text) or ""
+            translated_raw = seed_text
+            for translator in translators:
+                translated_raw = translator.translate(translated_raw) or ""
             translated_lines = [line.strip() for line in translated_raw.splitlines() if line.strip()]
             translated = translated_lines[-1] if translated_lines else translated_raw.strip()
             translated = apply_glossary(translated, glossary)

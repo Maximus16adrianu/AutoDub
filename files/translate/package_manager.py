@@ -109,10 +109,18 @@ class ArgosPackageManager:
         try:
             translate_api = self._translate_api()
             self.refresh_translation_cache(translate_api)
-            translate_api.get_translation_from_codes(source_language, target_language)
+            translator = translate_api.get_translation_from_codes(source_language, target_language)
+            if translator is not None:
+                return True
+            route = self.installed_route(source_language, target_language)
+            if not route:
+                return False
+            return all(
+                translate_api.get_translation_from_codes(step.from_code, step.to_code) is not None
+                for step in route
+            )
         except Exception:
             return False
-        return True
 
     def installed_route(self, source_language: str, target_language: str) -> list[ArgosRouteStep] | None:
         if source_language == target_language:
